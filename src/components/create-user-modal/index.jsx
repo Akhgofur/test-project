@@ -51,7 +51,6 @@ const CreateUserModal = ({ open, setOpen, refetch }) => {
   const { mutate } = useMutation({
     mutationFn: createUser,
     onSuccess: (data) => {
-        console.log(data, "asd");
       if (data?.status == 200 || data?.status == 201) {
         toast.success("User created");
         refetch();

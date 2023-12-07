@@ -62,7 +62,6 @@ const EditUserModal = ({ open, setOpen, refetch, view, user, setUser, setView })
   const { mutate } = useMutation({
     mutationFn: updateUser,
     onSuccess: (data) => {
-      console.log(data, "asd");
       if (data?.status == 200 || data?.status == 201) {
         toast.success("User edited");
         refetch();

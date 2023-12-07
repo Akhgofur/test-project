@@ -67,7 +67,6 @@ const Users = () => {
     mutationFn: deleteUser,
     mutationKey: ["users/delete"],
     onSuccess: (data) => {
-      console.log(data);
       if (data?.status == 200) {
         toast.success("Deleted successfully");
         handleDeleteClose();
@@ -93,7 +92,6 @@ const Users = () => {
           disablePortal
           value={filter}
           onChange={(event, newValue) => {
-            console.log(newValue);
             setSearch("");
             setFilter(newValue);
           }}
