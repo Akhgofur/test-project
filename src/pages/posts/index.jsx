@@ -1,4 +1,5 @@
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import Loader from "../../components/loader";
 import Table from "../../components/table";
 import {
   Button,
@@ -9,80 +10,47 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import AutocompleteSelect from "../../components/autocomplete-select";
+import { useDispatch, useSelector } from "react-redux";
+import { deletePost, filterPosts, getPosts, paginatePosts } from "../../slices/posts";
+import DeleteModal from "../../components/delete-modal";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import DeleteIcon from "@mui/icons-material/Delete";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import DeleteModal from "../../components/delete-modal";
-import { usersTableHeaders } from "../../utils/consts";
-import { useUsers } from "../../data/data.service";
-import Loader from "../../components/loader";
+import { postsTableHeaders } from "../../utils/consts";
 import { useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
-import { deleteUser } from "../../data/data.fn";
-import { toast } from "react-toastify";
-import CreateUserModal from "../../components/create-user-modal";
-import EditUserModal from "../../components/edit-user-modal";
-import { getLocalPagination } from "../../utils/functions";
-import AutocompleteSelect from "../../components/autocomplete-select";
 
-const Users = () => {
-  const { data, isLoading, refetch } = useUsers();
-
-  const [limit, setLimit] = useState(10);
-  const [page, setPage] = useState(1);
-
-  const [currentUser, setCurrentUser] = useState(null);
+const Posts = () => {
+  const [post, setPost] = useState(null);
   const [isDelete, setDelete] = useState(false);
-  const [create, setCreate] = useState(false);
-  const [edit, setEdit] = useState(false);
-  const [view, setView] = useState(false);
 
-  const [filter, setFilter] = useState(null);
-  const [search, setSearch] = useState("");
-
-  const filteredData = useMemo(() => {
-    if (data) {
-      if (filter) {
-        const array = data?.filter((item) => item?.name == filter?.name);
-        return getLocalPagination(array, limit, page);
-      } else if (search) {
-        const array = data?.filter((item) =>
-          item?.name?.toLowerCase()?.includes(search?.toLowerCase())
-        );
-
-        return getLocalPagination(array, limit, page);
-      }
-      return getLocalPagination(data, limit, page);
-    }
-    return [];
-  }, [filter, data, search, limit, page]);
+  const dispatch = useDispatch();
+  const data = useSelector((state) => state.posts.data);
+  const fullData = useSelector((state) => state.posts.fullData);
+  const postsStatus = useSelector((state) => state.posts.status);
+  const limit = useSelector((state) => state.posts.limit);
+  const page = useSelector((state) => state.posts.page);
+  const filter = useSelector((state) => state.posts.filter);
+  const search = useSelector((state) => state.posts.search);
 
   const handleDeleteClose = useCallback(() => {
+    setPost(null);
     setDelete(false);
-    setCurrentUser(null);
-  }, [setDelete, setCurrentUser]);
-
-  const { mutate } = useMutation({
-    mutationFn: deleteUser,
-    mutationKey: ["users/delete"],
-    onSuccess: (data) => {
-      if (data?.status == 200) {
-        toast.success("Deleted successfully");
-        handleDeleteClose();
-        refetch();
-      } else {
-        toast.error("Error occured please try again");
-      }
-    },
-    onError: () => {
-      toast.error("Error occured please try again");
-    },
-  });
+  }, [setDelete, setPost]);
 
   const handleDeleteUser = useCallback(() => {
-    mutate(currentUser?.id);
-  }, [currentUser, isDelete]);
+    dispatch(deletePost(post?.id));
+    handleDeleteClose();
+  }, [post, isDelete, dispatch]);
+
+  useEffect(() => {
+    if (postsStatus == "idle") {
+      dispatch(getPosts());
+    } 
+  }, [postsStatus]);
+
+  const navigate = useNavigate();
 
   return (
     <div className="text-center flex flex-col gap-4 justify-between h-full pt-[20px] pb-[70px]  ">
@@ -90,20 +58,19 @@ const Users = () => {
         <AutocompleteSelect
           value={filter}
           onChange={(event, newValue) => {
-            setSearch("");
-            setFilter(newValue);
+            dispatch(filterPosts({filter: newValue, search: ""}))
           }}
-          options={data}
+          options={fullData}
           optionValue={(opt) => opt.id}
-          optionLabel={(opt) => opt.name}
-          label="User"
+          optionLabel={(opt) => opt.title}
+          label="Posts"
         />
         <TextField
-          label="Type user name"
+          label="Type post title"
           value={search}
           onChange={(e) => {
-            setFilter(null);
-            setSearch(e.target.value);
+            dispatch(filterPosts({filter: null, search: e.target.value}))
+
           }}
         />
       </div>
@@ -111,32 +78,18 @@ const Users = () => {
         <div className="min-w-[1000px] lg:min-w-fit h-[70vh]">
           <DeleteModal
             handleClose={handleDeleteClose}
-            title={`Are you sure to delete ${currentUser?.name}`}
+            title={`Are you sure to delete ${post?.title?.slice(0, 30)}...`}
             handleSubmit={handleDeleteUser}
             open={isDelete}
           />
-          <CreateUserModal
-            open={create}
-            refetch={refetch}
-            setOpen={setCreate}
-          />
-          <EditUserModal
-            open={edit}
-            refetch={refetch}
-            setOpen={setEdit}
-            setUser={setCurrentUser}
-            setView={setView}
-            user={currentUser}
-            view={view}
-          />
-          {isLoading ? (
+          {postsStatus != "success" ? (
             <Loader />
           ) : (
             <Table
               head={
                 <thead className="w-full sticky top-0 left-0 z-[2] bg-primary text-white text-[15px] font-semibold">
                   <tr className="border-b">
-                    {usersTableHeaders?.map((item) => (
+                    {postsTableHeaders?.map((item) => (
                       <th className="px-4 py-3" key={item.id}>
                         {item.name}
                       </th>
@@ -145,13 +98,11 @@ const Users = () => {
                 </thead>
               }
             >
-              {filteredData?.map((item, index) => (
-                <tr key={item?.id} className="border-b">
-                  <td className="px-4 py-2">{index + 1}</td>
-                  <td className="px-4 py-2">{item?.name}</td>
-                  <td className="px-4 py-2">{item?.phone}</td>
-                  <td className="px-4 py-2">{item?.email}</td>
-                  <td className="px-4 py-2">{item?.address?.country}</td>
+              {data?.map((item, index) => (
+                <tr key={item?.id} className="border-b ">
+                  <td className="px-4 py-2">{item?.id}</td>
+                  <td className="px-4 py-2">{item?.title}</td>
+                  <td className="px-4 py-2">{item?.userId}</td>
 
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-3">
@@ -159,9 +110,7 @@ const Users = () => {
                         variant="outlined"
                         color="secondary"
                         onClick={() => {
-                          setCurrentUser(item);
-                          setEdit(true);
-                          setView(true);
+                            navigate(`/posts/edit/${item.id}?view=true`)
                         }}
                       >
                         <MoreHorizIcon />
@@ -170,8 +119,7 @@ const Users = () => {
                         variant="outlined"
                         color="secondary"
                         onClick={() => {
-                          setCurrentUser(item);
-                          setEdit(true);
+                            navigate(`/posts/edit/${item.id}`)
                         }}
                       >
                         <EditIcon />
@@ -182,7 +130,7 @@ const Users = () => {
                         color="error"
                         onClick={() => {
                           setDelete(true);
-                          setCurrentUser(item);
+                          setPost(item);
                         }}
                       >
                         <DeleteIcon />
@@ -201,7 +149,7 @@ const Users = () => {
             <Button
               variant="outlined"
               onClick={() => {
-                setPage((prev) => prev - 1);
+                dispatch(paginatePosts({ page: page - 1, limit }));
               }}
               disabled={page == 1}
             >
@@ -211,7 +159,7 @@ const Users = () => {
             <Button
               variant="outlined"
               onClick={() => {
-                setPage((prev) => prev + 1);
+                dispatch(paginatePosts({ page: page + 1, limit }));
               }}
             >
               <NavigateNextIcon />
@@ -226,8 +174,7 @@ const Users = () => {
                 value={limit}
                 label="Age"
                 onChange={(e) => {
-                  setLimit(e.target.value);
-                  setPage(1);
+                  dispatch(paginatePosts({ page: 1, limit: e.target.value }));
                 }}
               >
                 <MenuItem value={10}>10</MenuItem>
@@ -243,14 +190,14 @@ const Users = () => {
         <Button
           variant="outlined"
           onClick={() => {
-            setCreate(true);
+            navigate("/posts/create");
           }}
         >
-          {"Add user"}
+          {"Add post"}
         </Button>
       </div>
     </div>
   );
 };
 
-export default memo(Users);
+export default Posts;

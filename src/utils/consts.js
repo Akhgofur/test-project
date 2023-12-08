@@ -33,4 +33,23 @@ const usersTableHeaders = [
   },
 ];
 
-export { navData, usersTableHeaders };
+const postsTableHeaders = [
+  {
+    id: 1,
+    name: "ID",
+  },
+  {
+    id: 6,
+    name: "Title",
+  },
+  {
+    id: 2,
+    name: "User ID",
+  },
+  {
+    id: 3,
+    name: "",
+  },
+];
+
+export { navData, usersTableHeaders, postsTableHeaders };
