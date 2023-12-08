@@ -34,7 +34,7 @@ const posts = createSlice({
       state.filter = filter;
       if (search || filter) {
         state.data = state.fullData?.filter((item) => {
-          const searchVal = search ? item?.title?.includes(search) : true;
+          const searchVal = search ? item?.title?.toLowerCase()?.includes(search?.toLowerCase()) : true;
           const filterVal = filter ? item.title == filter?.title : true;
           return searchVal && filterVal;
         });
