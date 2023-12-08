@@ -72,7 +72,10 @@ const EditPost = () => {
           rows={4}
         />
         {isView != "true" ? (
-          <Button type="submit">Submit</Button>
+          <div className="flex items-center justify-end gap-4">
+            <Button onClick={() => {navigate("/posts")}} type="button">Cancel</Button>
+            <Button type="submit">Submit</Button>
+          </div>
         ) : (
           <Button
             type="button"
